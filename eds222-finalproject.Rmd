@@ -2,6 +2,8 @@
 ```{r}
 library(tidyverse)
 library(readxl)
+library(gstat)
+library(sp)
 ```
 
 ```{r}
@@ -62,6 +64,11 @@ wq <- rbind(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19
 ```
 
 ```{r}
+rm(bay_wq, p1, wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
+```
+
+
+```{r}
 wq <- wq %>% 
   filter(Parameter=="TN")
 ```
@@ -70,4 +77,18 @@ wq <- wq %>%
 ggplot(wq, aes(x=SampleDate, y=MeasureValue)) +
   geom_smooth()
 ```
+
+```{r}
+coordinates(wq) <- c("Longitude", "Latitude")
+```
+
+```{r}
+class(wq)
+```
+
+
+```{r}
+variogram_model <- variogramST(MeasureValue~1, wq)
+```
+
 
