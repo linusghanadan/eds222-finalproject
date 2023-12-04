@@ -58,6 +58,16 @@ wq_10 <-read_excel(path = tf)
 
 
 ```{r}
-bay_wq <- read_excel("https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2019_CEDR_tidal_data_01jun21.xlsx")
+wq <- rbind(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
+```
+
+```{r}
+wq <- wq %>% 
+  filter(Parameter=="TN")
+```
+
+```{r}
+ggplot(wq, aes(x=SampleDate, y=MeasureValue)) +
+  geom_smooth()
 ```
 
