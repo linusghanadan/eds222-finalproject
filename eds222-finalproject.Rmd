@@ -1,0 +1,63 @@
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+```{r}
+url<-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2019_CEDR_tidal_data_01jun21.xlsx'
+tf <- tempfile()
+download.file(url, tf)
+wq_19 <-read_excel(path = tf)
+
+url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2018_CEDR_tidal_data_01jun21.xlsx'
+tf <- tempfile()
+download.file(url, tf)
+wq_18 <-read_excel(path = tf)
+
+url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2017_CEDR_tidal_data_11oct18.xlsx'
+tf <- tempfile()
+download.file(url, tf)
+wq_17 <-read_excel(path = tf)
+
+url<-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2016_CEDR_tidal_data_15jun17.xlsx'
+tf <- tempfile()
+download.file(url, tf)
+wq_16 <-read_excel(path = tf)
+
+url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2015_CEDR_tidal_data_15jun17.xlsx'
+tf <- tempfile()
+download.file(url, tf)
+wq_15 <-read_excel(path = tf)
+
+url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2014_CEDR_tidal_data_15jun17.xlsx'
+tf <- tempfile()
+download.file(url, tf)
+wq_14 <-read_excel(path = tf)
+
+url<-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2013_CEDR_tidal_data_15jun17.xlsx'
+tf <- tempfile()
+download.file(url, tf)
+wq_13 <-read_excel(path = tf)
+
+url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2012_CEDR_tidal_data_15jun17.xlsx'
+tf <- tempfile()
+download.file(url, tf)
+wq_12 <-read_excel(path = tf)
+
+url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2011_CEDR_tidal_data_15jun17.xlsx'
+tf <- tempfile()
+download.file(url, tf)
+wq_11 <-read_excel(path = tf)
+
+url<-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2010_CEDR_tidal_data_15jun17.xlsx'
+tf <- tempfile()
+download.file(url, tf)
+wq_10 <-read_excel(path = tf)
+```
+
+
+```{r}
+bay_wq <- read_excel("https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2019_CEDR_tidal_data_01jun21.xlsx")
+```
+
