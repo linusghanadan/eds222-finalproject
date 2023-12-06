@@ -64,7 +64,7 @@ wq <- rbind(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19
 ```
 
 ```{r}
-rm(bay_wq, p1, wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
+rm(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
 ```
 
 
@@ -78,4 +78,73 @@ ggplot(wq, aes(x=SampleDate, y=MeasureValue)) +
   geom_smooth()
 ```
 
+```{r}
+library(tidyverse)
+library(tsibble)
+```
+
+```{r}
+class(wq$SampleDate)
+```
+
+```{r}
+library(dplyr)
+library(tsibble)
+library(lubridate)
+
+# Assuming wq is your original data frame
+wq_ts <- as.ts(wq)
+
+# Convert to tsibble
+wq_tsibble <- as_tsibble(wq_ts) %>%
+  mutate(yr_mo = yearmonth(time)) %>% # Extract month and year
+  group_by(yr_mo) %>%                  # Group by year-month
+  summarize(monthly_avg = mean(value, na.rm = TRUE)) # Calculate monthly average
+
+# If you want to convert yr_mo to an index, you can do:
+wq_tsibble <- as_tsibble(wq_tsibble, index = yr_mo)
+
+```
+
+
+```{r}
+wq_ts <- as.ts(wq)
+
+wq_ts = wq_ts %>%
+mutate(yr_mo = yearmonth(SampleDate)) %>% # Make a column with just month and year from group_by(yr_mo) %>% # Group by year-month
+summarize(monthly_avg = mean(SampleDate, na.rm = TRUE)) # Find month as_tsibble(index = yr_mo) # Convert to a tsibble (time series tibble)
+```
+
+
+```{r}
+library(zoo)
+```
+
+```{r}
+# Assuming wq is your original time series object
+wq_ts <- as.ts(wq)
+
+# Convert to data frame
+wq_df <- as.data.frame(wq_ts)
+# 
+# x <- seq(as.Date("2016-01-01"), as.Date("2016-12-31"), by = "1 month")
+
+# Create a new column with month and year
+wq_df <- wq_df %>%
+  mutate(yr_mo = as.yearmon(SampleDate))
+
+# Group by year-month and calculate the monthly average
+result <- wq_df %>%
+  group_by(yr_mo) %>%
+  summarize(monthly_avg = mean(MeasureValue, na.rm = TRUE))  # Replace 'value' with the actual column name in your data
+# 
+# Convert to tsibble
+result_tsibble <- as_tsibble(result, index = yr_mo)
+result_tsibble
+
+```
+
+```{r}
+
+```
 
