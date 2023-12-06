@@ -78,17 +78,4 @@ ggplot(wq, aes(x=SampleDate, y=MeasureValue)) +
   geom_smooth()
 ```
 
-```{r}
-coordinates(wq) <- c("Longitude", "Latitude")
-```
-
-```{r}
-class(wq)
-```
-
-
-```{r}
-variogram_model <- variogramST(MeasureValue~1, wq)
-```
-
 
