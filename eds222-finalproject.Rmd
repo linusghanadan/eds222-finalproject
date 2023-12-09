@@ -66,7 +66,7 @@ rm(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
 ```{r}
 wq <- wq %>%
   select("MonitoringLocation", "SampleDate", "Parameter", "MeasureValue", "Unit", "Latitude", "Longitude") %>% 
-  filter(Parameter=="TN")
+  filter(Parameter=="TP")
 
 class(wq$SampleDate)
 ```
@@ -79,14 +79,14 @@ wq_monthly_avgs <- wq %>%
 ```
 
 ```{r}
-wq$yr_mo <- as.Date(yr_mo)
+wq_monthly_avgs$yr_mo <- as.Date(wq_monthly_avgs$yr_mo)
 
-class(wq$yr_mo)
+class(wq_monthly_avgs$yr_mo)
 ```
 
 
 ```{r}
-wq %>%
+wq_monthly_avgs %>%
   ggplot(aes(yr_mo, monthly_avg)) +
   stat_summary(geom = 'line', fun = 'mean') +
   geom_smooth(se = FALSE, color = 'blue') +
@@ -95,27 +95,23 @@ wq %>%
   theme_bw()
 ```
 
+
 ```{r}
-class(wq)
+# dcmp2 = weather_ts %>% model(STL(avg_mean_airtemp, t.window = 12*5))
+# 
+# components(dcmp2) %>%
+# filter(year(yr_mo) > 1989) %>%
+# as_tsibble() %>%
+# autoplot(trend, colour = "red") + geom_line(aes(y=season_adjust), colour = "gray", alpha = .4) + lims(y=c(0, 15)) +
+# labs(y = "Monthly Mean Air Temperature (Celsius)", x = "Year",
+#        title = "Mean Annual Temperature", subtitle = "Madison, WI")
 ```
 
 
 ```{r}
-dcmp2 = weather_ts %>% model(STL(avg_mean_airtemp, t.window = 12*5))
-# Plot to see smoother trend
-components(dcmp2) %>%
-filter(year(yr_mo) > 1989) %>%
-as_tsibble() %>%
-autoplot(trend, colour = "red") + geom_line(aes(y=season_adjust), colour = "gray", alpha = .4) + lims(y=c(0, 15)) +
-labs(y = "Monthly Mean Air Temperature (Celsius)", x = "Year",
-       title = "Mean Annual Temperature", subtitle = "Madison, WI")
-```
+wq_monthly_avgs <- as_tsibble(wq_monthly_avgs)
 
-
-```{r}
-wq <- as_tsibble(wq)
-
-wq %>% model(STL(monthly_avg, t.window= 12)) %>% 
+wq_monthly_avgs %>% model(classical_decomposition(monthly_avg, type = "additive")) %>% 
   generics::components() %>% 
   autoplot() +
   labs(title = "Time Series Analysis of Nitrogen Pollution")
