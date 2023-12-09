@@ -2,17 +2,10 @@
 ```{r}
 library(tidyverse)
 library(readxl)
-library(gstat)
-library(sp)
+library(tsibble)
+library(feasts)
+library(generics)
 ```
-
-```{r}
-url<-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2019_CEDR_tidal_data_01jun21.xlsx'
-tf <- tempfile()
-download.file(url, tf)
-wq_19 <-read_excel(path = tf, col_names = c("SampleDate", "Parameter", "MeasureValue", "Latitude", "Longitude"))
-```
-
 
 ```{r}
 url<-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2019_CEDR_tidal_data_01jun21.xlsx'
@@ -64,50 +57,67 @@ url<-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21
 tf <- tempfile()
 download.file(url, tf)
 wq_10 <-read_excel(path = tf)
-```
 
-
-```{r}
 wq <- rbind(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
-```
 
-```{r}
 rm(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
 ```
 
-
 ```{r}
-wq <- wq %>% 
+wq <- wq %>%
+  select("MonitoringLocation", "SampleDate", "Parameter", "MeasureValue", "Unit", "Latitude", "Longitude") %>% 
   filter(Parameter=="TN")
-```
 
-```{r}
-ggplot(wq, aes(x=SampleDate, y=MeasureValue)) +
-  geom_smooth()
-```
-
-```{r}
-library(tidyverse)
-library(tsibble)
-```
-
-```{r}
 class(wq$SampleDate)
 ```
 
 ```{r}
-library(dplyr)
-library(tsibble)
-library(lubridate)
-
-
-wq <- wq %>% 
-  mutate(yr_mo = yearmonth(SampleDate)) %>%
+wq_monthly_avgs <- wq %>% 
+  mutate(yr_mo = tsibble::yearmonth(SampleDate)) %>%
   group_by(yr_mo) %>%
   summarize(monthly_avg = mean(MeasureValue, na.rm = TRUE))
 ```
 
 ```{r}
+wq$yr_mo <- as.Date(yr_mo)
 
+class(wq$yr_mo)
+```
+
+
+```{r}
+wq %>%
+  ggplot(aes(yr_mo, monthly_avg)) +
+  stat_summary(geom = 'line', fun = 'mean') +
+  geom_smooth(se = FALSE, color = 'blue') +
+  labs(x = 'Month', y = 'Average TN measurement (mg/L)', title = "Nitrogen Pollution in Chesapeake Bay (2010-2020)") +
+  scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
+  theme_bw()
+```
+
+```{r}
+class(wq)
+```
+
+
+```{r}
+dcmp2 = weather_ts %>% model(STL(avg_mean_airtemp, t.window = 12*5))
+# Plot to see smoother trend
+components(dcmp2) %>%
+filter(year(yr_mo) > 1989) %>%
+as_tsibble() %>%
+autoplot(trend, colour = "red") + geom_line(aes(y=season_adjust), colour = "gray", alpha = .4) + lims(y=c(0, 15)) +
+labs(y = "Monthly Mean Air Temperature (Celsius)", x = "Year",
+       title = "Mean Annual Temperature", subtitle = "Madison, WI")
+```
+
+
+```{r}
+wq <- as_tsibble(wq)
+
+wq %>% model(STL(monthly_avg, t.window= 12)) %>% 
+  generics::components() %>% 
+  autoplot() +
+  labs(title = "Time Series Analysis of Nitrogen Pollution")
 ```
 
