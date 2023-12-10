@@ -58,42 +58,57 @@ tf <- tempfile()
 download.file(url, tf)
 wq_10 <-read_excel(path = tf)
 
-wq <- rbind(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
+# Assuming you have a vector of URLs
+excel_urls <- c(
+  "https://example.com/file1.xlsx",
+  "https://example.com/file2.xlsx",
+  "https://example.com/file3.xlsx"
+)
 
-rm(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
+# Create a temporary directory to store downloaded files
+temp_dir <- tempdir()
+
+# Loop through each URL, download the file, and read it into R
+for (url in excel_urls) {
+  # Extract the file name from the URL
+  file_name <- basename(url)
+  # Define the local file path
+  local_path <- file.path(temp_dir, file_name)
+  # Download the file
+  download.file(url, destfile = local_path, mode = "wb")
+  # Read the Excel file into R (adjust the sheet name or other parameters as needed)
+  data <- readxl::read_excel(local_path, sheet = 1)
 ```
 
 ```{r}
-wq <- wq %>%
+wq <- rbind(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
+rm(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
+
+phos <- wq %>%
   select("MonitoringLocation", "SampleDate", "Parameter", "MeasureValue", "Unit", "Latitude", "Longitude") %>% 
   filter(Parameter=="TP")
-
-class(wq$SampleDate)
+rm(wq)
 ```
 
+
 ```{r}
-wq_monthly_avgs_ts <- wq %>% 
+phos_monthly_avgs_ts <- phos %>% 
   mutate(yr_mo = tsibble::yearmonth(SampleDate)) %>%
   group_by(yr_mo) %>%
   summarize(monthly_avg = mean(MeasureValue, na.rm = TRUE)) %>% 
   as_tsibble()
-```
 
-```{r}
-class(wq_monthly_avgs_ts)
+phos_monthly_avgs_df <- as.data.frame(wq_monthly_avgs_ts)
+phos_monthly_avgs_df$yr_mo <- as.Date(wq_monthly_avgs_ts$yr_mo, format = "%Y-%m")
 ```
-
 
 
 ```{r}
-wq_monthly_avgs_df <- as.data.frame(wq_monthly_avgs_ts)
-wq_monthly_avgs_df$yr_mo <- as.Date(wq_monthly_avgs_ts$yr_mo, format = "%Y-%m")
-
-wq_monthly_avgs_df %>%
+phos_monthly_avgs_df %>%
   ggplot(aes(yr_mo, monthly_avg)) +
   stat_summary(geom = 'line', fun = 'mean') +
   geom_smooth(se = FALSE, color = 'blue') +
-  labs(x = 'Year-Month', y = 'Average TN measurement (mg/L)', title = "Nitrogen Pollution in Chesapeake Bay (2010-2019)") +
+  labs(x = 'Year-Month', y = 'Mean concentration (mg/L)', title = "Phosphorus in Chesapeake Bay (2010-2019)") +
   scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
   theme_bw()
 ```
@@ -101,43 +116,41 @@ wq_monthly_avgs_df %>%
 
 
 ```{r}
-wq_monthly_avgs$yr_mo <- as.yearmon(wq_monthly_avgs$yr_mo, format = "%Y-%m")
-```
-
-```{r}
-decomp_monthly <- wq_monthly_avgs %>%
+decomp_yearly <- phos_monthly_avgs_ts %>%
   fabletools::model(feasts::STL(monthly_avg, t.window = 12)) %>% 
   generics::components()
 
-decomp_monthly %>%
-  autoplot() +
-  labs(title = "Monthly Time Series Analysis of P", x = "Year-Month")
+autoplot(decomp_yearly) +
+  labs(title = "Time series analysis of Phosphorus concentration", x = "Year Month")
 ```
 
 ```{r}
-acf(wq_monthly_avgs_ts, lag.max = 11)
-```
-
-
-```{r}
-wq_monthly_avgs_ts %>%
-  fabletools::model(feasts::STL(monthly_avg, t.window = 4)) %>% 
-  generics::components() %>% 
-  autoplot() +
-  labs(title = "Quarterly Time Series Analysis of P", x = "Year-Month")
+acf(phos_monthly_avgs_ts, lag.max = 24)
 ```
 
 ```{r}
-acf(wq_monthly_avgs_ts, lag.max = 4)
-```
-
-
-```{r}
-ggplot(wq_monthly_avgs_df, aes(yr_mo)) +
+ggplot(phos_monthly_avgs_df, aes(yr_mo)) +
   scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
-  geom_line(aes(y=decomp_monthly$season_adjust)) +
-  geom_line(aes(y=decomp_monthly$trend), color = "red", linewidth=2) +
-  labs(x = 'Year-Month', y = 'Mean concentration (mg/L)', title = "Phosphorus in Chesapeake Bay (2010-2019)", subtitle = "Black: Mean after adjusting for STL monthly seasonality\nRed: STL trend") +
+  geom_line(aes(y=decomp_yearly$monthly_avg)) +
+  geom_line(aes(y=decomp_yearly$season_year), color="seagreen") +
+  geom_line(aes(y=decomp_yearly$season_adjust), color = "cornflowerblue", linewidth=2) +
+  labs(x = 'Year-Month',
+       y = 'Mean concentration (mg/L)',
+       title = "Phosphorus in Chesapeake Bay (2010-2019)",
+       subtitle = "Black: Monthly mean\nBlue: Monthly mean after adjusting for STL yearly seasonality\nGreen: STL yearly seasonality") +
+  theme_bw()
+```
+
+
+```{r}
+ggplot(phos_monthly_avgs_df, aes(yr_mo)) +
+  scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
+  geom_line(aes(y=decomp_yearly$season_adjust)) +
+  geom_line(aes(y=decomp_yearly$trend), color = "red", linewidth=2) +
+  labs(x = 'Year-Month',
+       y = 'Mean concentration (mg/L)',
+       title = "Phosphorus in Chesapeake Bay (2010-2019)",
+       subtitle = "Black: Monthly mean after adjusting for STL yearly seasonality\nRed: STL trend") +
   theme_bw()
 ```
 
