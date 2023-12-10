@@ -8,104 +8,58 @@ library(generics)
 ```
 
 ```{r}
-url<-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2019_CEDR_tidal_data_01jun21.xlsx'
-tf <- tempfile()
-download.file(url, tf)
-wq_19 <-read_excel(path = tf)
-
-url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2018_CEDR_tidal_data_01jun21.xlsx'
-tf <- tempfile()
-download.file(url, tf)
-wq_18 <-read_excel(path = tf)
-
-url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2017_CEDR_tidal_data_11oct18.xlsx'
-tf <- tempfile()
-download.file(url, tf)
-wq_17 <-read_excel(path = tf)
-
-url<-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2016_CEDR_tidal_data_15jun17.xlsx'
-tf <- tempfile()
-download.file(url, tf)
-wq_16 <-read_excel(path = tf)
-
-url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2015_CEDR_tidal_data_15jun17.xlsx'
-tf <- tempfile()
-download.file(url, tf)
-wq_15 <-read_excel(path = tf)
-
-url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2014_CEDR_tidal_data_15jun17.xlsx'
-tf <- tempfile()
-download.file(url, tf)
-wq_14 <-read_excel(path = tf)
-
-url<-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2013_CEDR_tidal_data_15jun17.xlsx'
-tf <- tempfile()
-download.file(url, tf)
-wq_13 <-read_excel(path = tf)
-
-url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2012_CEDR_tidal_data_15jun17.xlsx'
-tf <- tempfile()
-download.file(url, tf)
-wq_12 <-read_excel(path = tf)
-
-url <-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2011_CEDR_tidal_data_15jun17.xlsx'
-tf <- tempfile()
-download.file(url, tf)
-wq_11 <-read_excel(path = tf)
-
-url<-'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2010_CEDR_tidal_data_15jun17.xlsx'
-tf <- tempfile()
-download.file(url, tf)
-wq_10 <-read_excel(path = tf)
-
-# Assuming you have a vector of URLs
+# Create a vector of data URLs
 excel_urls <- c(
-  "https://example.com/file1.xlsx",
-  "https://example.com/file2.xlsx",
-  "https://example.com/file3.xlsx"
-)
+  'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2019_CEDR_tidal_data_01jun21.xlsx',
+  'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2018_CEDR_tidal_data_01jun21.xlsx',
+  'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2017_CEDR_tidal_data_11oct18.xlsx',
+  'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2016_CEDR_tidal_data_15jun17.xlsx',
+  'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2015_CEDR_tidal_data_15jun17.xlsx',
+  'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2014_CEDR_tidal_data_15jun17.xlsx',
+  'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2013_CEDR_tidal_data_15jun17.xlsx',
+  'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2012_CEDR_tidal_data_15jun17.xlsx',
+  'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2011_CEDR_tidal_data_15jun17.xlsx',
+  'https://datahub-content.chesapeakebay.net/traditional_annual_tidal_02jun21/2010_CEDR_tidal_data_15jun17.xlsx')
 
 # Create a temporary directory to store downloaded files
 temp_dir <- tempdir()
 
-# Loop through each URL, download the file, and read it into R
+# Loop through each URL, extract file name, define local file path, download file, and read into R
 for (url in excel_urls) {
-  # Extract the file name from the URL
   file_name <- basename(url)
   # Define the local file path
   local_path <- file.path(temp_dir, file_name)
-  # Download the file
   download.file(url, destfile = local_path, mode = "wb")
-  # Read the Excel file into R (adjust the sheet name or other parameters as needed)
-  data <- readxl::read_excel(local_path, sheet = 1)
-```
+  wq_data <- readxl::read_excel(local_path, sheet = 1)}
 
-```{r}
-wq <- rbind(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
-rm(wq_10, wq_11, wq_12, wq_13, wq_14, wq_15, wq_16, wq_17, wq_18, wq_19)
-
-phos <- wq %>%
+# Wrangle data for relevant column variables and row observations
+phos_data <- wq_data %>%
   select("MonitoringLocation", "SampleDate", "Parameter", "MeasureValue", "Unit", "Latitude", "Longitude") %>% 
   filter(Parameter=="TP")
-rm(wq)
+
+# Remove unnecessary data and values from environment
+rm(wq_data)
+rm(excel_urls, file_name, local_path, temp_dir)
 ```
 
-
 ```{r}
-phos_monthly_avgs_ts <- phos %>% 
+# Summarize Phosphorus data by year-month, and store as tsibble
+phos_monthly_avgs_ts <- phos_data %>% 
   mutate(yr_mo = tsibble::yearmonth(SampleDate)) %>%
   group_by(yr_mo) %>%
   summarize(monthly_avg = mean(MeasureValue, na.rm = TRUE)) %>% 
-  as_tsibble()
+  tsibble::as_tsibble()
 
-phos_monthly_avgs_df <- as.data.frame(wq_monthly_avgs_ts)
-phos_monthly_avgs_df$yr_mo <- as.Date(wq_monthly_avgs_ts$yr_mo, format = "%Y-%m")
+# Create data.frame version, and convert year-months to Date class (helpful for plotting)
+phos_monthly_avgs_df <- as.data.frame(phos_monthly_avgs_ts)
+phos_monthly_avgs_df$yr_mo <- as.Date(phos_monthly_avgs_ts$yr_mo, format = "%Y-%m")
 ```
 
 
 ```{r}
+# Plot monthly average Phosphorus concentration as a function of year-month, and add smooth trend line
 phos_monthly_avgs_df %>%
-  ggplot(aes(yr_mo, monthly_avg)) +
+  ggplot(aes(x = yr_mo, y = monthly_avg)) +
   stat_summary(geom = 'line', fun = 'mean') +
   geom_smooth(se = FALSE, color = 'blue') +
   labs(x = 'Year-Month', y = 'Mean concentration (mg/L)', title = "Phosphorus in Chesapeake Bay (2010-2019)") +
@@ -116,19 +70,23 @@ phos_monthly_avgs_df %>%
 
 
 ```{r}
+# Conduct STL time series analysis with yearly seasons, and extract components
 decomp_yearly <- phos_monthly_avgs_ts %>%
   fabletools::model(feasts::STL(monthly_avg, t.window = 12)) %>% 
   generics::components()
 
+# Plot STL time series analysis
 autoplot(decomp_yearly) +
-  labs(title = "Time series analysis of Phosphorus concentration", x = "Year Month")
+  labs(title = "STL time series analysis of Phosphorus concentration", x = "Year Month")
 ```
 
 ```{r}
+# Plot autocorrelation function with lags going back two yearly seasons
 acf(phos_monthly_avgs_ts, lag.max = 24)
 ```
 
 ```{r}
+# Plot monthly mean, monthly mean after adjusting for STL yearly seasonality, and STL yearly seasonality
 ggplot(phos_monthly_avgs_df, aes(yr_mo)) +
   scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
   geom_line(aes(y=decomp_yearly$monthly_avg)) +
@@ -143,6 +101,7 @@ ggplot(phos_monthly_avgs_df, aes(yr_mo)) +
 
 
 ```{r}
+# Plot monthly mean after adjusting for STL yearly seasonality, and plot STL trend
 ggplot(phos_monthly_avgs_df, aes(yr_mo)) +
   scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
   geom_line(aes(y=decomp_yearly$season_adjust)) +
