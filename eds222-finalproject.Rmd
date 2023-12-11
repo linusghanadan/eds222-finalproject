@@ -51,6 +51,11 @@ for (url in excel_urls) {
 # Combine all data frames into a single data frame
 wq_data_combined <- do.call(rbind, dfs)
 
+# Wrangle data for relevant column variables, and filter for TN (total nitrogen)
+nitr_data <- wq_data_combined %>%
+  select("MonitoringLocation", "SampleDate", "Parameter", "MeasureValue", "Unit", "Latitude", "Longitude") %>% 
+  filter(Parameter=="TN")
+
 # Wrangle data for relevant column variables, and filter for TP (total phosphorus)
 phos_data <- wq_data_combined %>%
   select("MonitoringLocation", "SampleDate", "Parameter", "MeasureValue", "Unit", "Latitude", "Longitude") %>% 
@@ -62,21 +67,44 @@ rm(excel_urls, file_name, local_path, temp_dir, url)
 ```
 
 ```{r}
-# Summarize Phosphorus data by year-month, and store as tsibble
+# Summarize nitrogen data by year-month, and store as tsibble
+nitr_monthly_avgs_ts <- nitr_data %>% 
+  mutate(yr_mo = tsibble::yearmonth(SampleDate)) %>%
+  group_by(yr_mo) %>%
+  summarize(monthly_avg = mean(MeasureValue, na.rm = TRUE)) %>% 
+  tsibble::as_tsibble()
+
+# Create data frame version, and convert year-months to Date class (helpful for plotting)
+nitr_monthly_avgs_df <- as.data.frame(nitr_monthly_avgs_ts)
+nitr_monthly_avgs_df$yr_mo <- as.Date(nitr_monthly_avgs_ts$yr_mo, format = "%Y-%m")
+```
+
+```{r}
+# Summarize phosphorus data by year-month, and store as tsibble
 phos_monthly_avgs_ts <- phos_data %>% 
   mutate(yr_mo = tsibble::yearmonth(SampleDate)) %>%
   group_by(yr_mo) %>%
   summarize(monthly_avg = mean(MeasureValue, na.rm = TRUE)) %>% 
   tsibble::as_tsibble()
 
-# Create data.frame version, and convert year-months to Date class (helpful for plotting)
+# Create data frame version, and convert year-months to Date class (helpful for plotting)
 phos_monthly_avgs_df <- as.data.frame(phos_monthly_avgs_ts)
 phos_monthly_avgs_df$yr_mo <- as.Date(phos_monthly_avgs_ts$yr_mo, format = "%Y-%m")
 ```
 
+```{r}
+# Plot monthly average nitrogen concentration as a function of year-month
+nitr_monthly_avgs_df %>%
+  ggplot(aes(x = yr_mo, y = monthly_avg)) +
+  stat_summary(geom = 'line', fun = 'mean') +
+  labs(x = 'Year-Month', y = 'Monthly Mean Concentration (mg/L)', title = "Nitrogen in Chesapeake Bay (2010-2019)") +
+  scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
 
 ```{r}
-# Plot monthly average Phosphorus concentration as a function of year-month, and add smooth trend line
+# Plot monthly average phosphorus concentration as a function of year-month
 phos_monthly_avgs_df %>%
   ggplot(aes(x = yr_mo, y = monthly_avg)) +
   stat_summary(geom = 'line', fun = 'mean') +
@@ -86,32 +114,62 @@ phos_monthly_avgs_df %>%
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
+```{r}
+# Conduct STL time series analysis for nitrogen with yearly seasons, and extract components
+nitr_decomp_yearly <- nitr_monthly_avgs_ts %>%
+  fabletools::model(feasts::STL(monthly_avg, t.window = 24)) %>% 
+  generics::components()
 
+# Plot STL time series analysis of nitrogen concentration
+autoplot(nitr_decomp_yearly) +
+  labs(title = "STL Time Series Analysis of Nitrogen Concentration", x = "Year Month")
+```
 
 ```{r}
-# Conduct STL time series analysis with yearly seasons, and extract components
-decomp_yearly <- phos_monthly_avgs_ts %>%
-  fabletools::model(feasts::STL(monthly_avg, t.window = 12)) %>% 
+# Conduct STL time series analysis for phosphorus with two-year seasons, and extract components
+phos_decomp_yearly <- phos_monthly_avgs_ts %>%
+  fabletools::model(feasts::STL(monthly_avg, t.window = 36)) %>% 
   generics::components()
 
 # Plot STL time series analysis
-autoplot(decomp_yearly) +
-  labs(title = "STL time series analysis of phosphorus concentration", x = "Year Month")
+autoplot(phos_decomp_yearly) +
+  labs(title = "STL Time Series Analysis of Phosphorus Concentration", x = "Year Month")
+```
+
+```{r}
+# Plot autocorrelation function for nitrogen with lags going back three years
+acf(nitr_monthly_avgs_ts, lag.max = 36)
 ```
 
 ```{r}
 # Plot autocorrelation function with lags going back two yearly seasons
-acf(phos_monthly_avgs_ts, lag.max = 24)
+acf(phos_monthly_avgs_ts, lag.max = 48)
 ```
 
 ```{r}
-# Plot monthly mean, seasonally adjusted monthly mean, STL seasonality, and STL trend
+# For nitrogen, plot monthly mean, seasonally adjusted monthly mean, STL seasonality, and STL trend
+ggplot(nitr_monthly_avgs_df, aes(yr_mo)) +
+  scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
+  geom_line(aes(y=nitr_decomp_yearly$monthly_avg, color = "Monthly mean")) +
+  geom_line(aes(y=nitr_decomp_yearly$season_adjust, color = "Seasonally adjusted monthly mean"), linewidth=2) +
+  geom_line(aes(y=nitr_decomp_yearly$trend, color = "STL trend"), linewidth = 2) +
+  geom_line(aes(y=nitr_decomp_yearly$season_year, color = "STL seasonality")) +
+  labs(x = 'Year-Month',
+       y = 'Concentration (mg/L)',
+       title = "Nitrogen in Chesapeake Bay (2010-2019)") +
+  scale_color_manual(name = "", values = c("Monthly mean" = "black", "Seasonally adjusted monthly mean" = "cornflowerblue", "STL seasonality" = "seagreen", "STL trend" = "red"), breaks = c("Monthly mean", "Seasonally adjusted monthly mean", "STL seasonality", "STL trend")) +
+  theme_bw() +
+  theme(legend.position = "top", plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+# For phosphorus, plot monthly mean, seasonally adjusted monthly mean, STL seasonality, and STL trend
 ggplot(phos_monthly_avgs_df, aes(yr_mo)) +
   scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
-  geom_line(aes(y=decomp_yearly$monthly_avg, color = "Monthly mean")) +
-  geom_line(aes(y=decomp_yearly$season_adjust, color = "Seasonally adjusted monthly mean"), linewidth=2) +
-  geom_line(aes(y=decomp_yearly$trend, color = "STL trend"), linewidth = 2) +
-  geom_line(aes(y=decomp_yearly$season_year, color = "STL seasonality")) +
+  geom_line(aes(y=phos_decomp_yearly$monthly_avg, color = "Monthly mean")) +
+  geom_line(aes(y=phos_decomp_yearly$season_adjust, color = "Seasonally adjusted monthly mean"), linewidth=2) +
+  geom_line(aes(y=phos_decomp_yearly$trend, color = "STL trend"), linewidth = 2) +
+  geom_line(aes(y=phos_decomp_yearly$season_year, color = "STL seasonality")) +
   labs(x = 'Year-Month',
        y = 'Concentration (mg/L)',
        title = "Phosphorus in Chesapeake Bay (2010-2019)") +
