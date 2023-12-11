@@ -115,7 +115,7 @@ phos_monthly_avgs_df %>%
 ```
 
 ```{r}
-# Conduct STL time series analysis for nitrogen with yearly seasons, and extract components
+# Conduct STL time series analysis for nitrogen with two-year seasons, and extract components
 nitr_decomp_yearly <- nitr_monthly_avgs_ts %>%
   fabletools::model(feasts::STL(monthly_avg, t.window = 24)) %>% 
   generics::components()
@@ -128,7 +128,7 @@ autoplot(nitr_decomp_yearly) +
 ```{r}
 # Conduct STL time series analysis for phosphorus with two-year seasons, and extract components
 phos_decomp_yearly <- phos_monthly_avgs_ts %>%
-  fabletools::model(feasts::STL(monthly_avg, t.window = 36)) %>% 
+  fabletools::model(feasts::STL(monthly_avg, t.window = 24)) %>% 
   generics::components()
 
 # Plot STL time series analysis
@@ -142,8 +142,8 @@ acf(nitr_monthly_avgs_ts, lag.max = 36)
 ```
 
 ```{r}
-# Plot autocorrelation function with lags going back two yearly seasons
-acf(phos_monthly_avgs_ts, lag.max = 48)
+# Plot autocorrelation function for phosphorus with lags going back three years
+acf(phos_monthly_avgs_ts, lag.max = 36)
 ```
 
 ```{r}
