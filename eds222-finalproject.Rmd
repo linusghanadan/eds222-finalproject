@@ -80,9 +80,10 @@ phos_monthly_avgs_df$yr_mo <- as.Date(phos_monthly_avgs_ts$yr_mo, format = "%Y-%
 phos_monthly_avgs_df %>%
   ggplot(aes(x = yr_mo, y = monthly_avg)) +
   stat_summary(geom = 'line', fun = 'mean') +
-  labs(x = 'Year-Month', y = 'Mean concentration (mg/L)', title = "Phosphorus in Chesapeake Bay (2010-2019)") +
+  labs(x = 'Year-Month', y = 'Monthly Mean Concentration (mg/L)', title = "Phosphorus in Chesapeake Bay (2010-2019)") +
   scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
-  theme_bw()
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 
@@ -95,7 +96,7 @@ decomp_yearly <- phos_monthly_avgs_ts %>%
 
 # Plot STL time series analysis
 autoplot(decomp_yearly) +
-  labs(title = "STL time series analysis of Phosphorus concentration", x = "Year Month")
+  labs(title = "STL time series analysis of phosphorus concentration", x = "Year Month")
 ```
 
 ```{r}
@@ -104,33 +105,17 @@ acf(phos_monthly_avgs_ts, lag.max = 24)
 ```
 
 ```{r}
-# Plot monthly mean, monthly mean after adjusting for STL yearly seasonality, and STL yearly seasonality
+# Plot monthly mean, seasonally adjusted monthly mean, STL seasonality, and STL trend
 ggplot(phos_monthly_avgs_df, aes(yr_mo)) +
   scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
   geom_line(aes(y=decomp_yearly$monthly_avg, color = "Monthly mean")) +
-  geom_line(aes(y=decomp_yearly$season_adjust, color = "Adjusted monthly mean"), linewidth=2) +
-  geom_line(aes(y=decomp_yearly$season_year, color = "STL yearly seasonality")) +
-  labs(x = 'Year-Month',
-       y = 'Mean concentration (mg/L)',
-       title = "Phosphorus in Chesapeake Bay (2010-2019)") +
-  scale_color_manual(name = "", values = c("Monthly mean" = "black", "Adjusted monthly mean" = "cornflowerblue", "STL yearly seasonality" = "seagreen"), breaks = c("Monthly mean", "Adjusted monthly mean", "STL yearly seasonality")) +
-  theme_bw() +
-  theme(legend.position = "top", plot.title = element_text(hjust = 0.5))
-```
-
-
-```{r}
-# Plot monthly mean after adjusting for STL yearly seasonality, and plot STL trend
-ggplot(phos_monthly_avgs_df, aes(yr_mo)) +
-  scale_x_date(date_breaks = "1 year", date_minor_breaks = "6 months", date_labels = "%Y-%m") +
-  geom_line(aes(y=decomp_yearly$season_adjust, color = "Adjusted monthly mean")) +
+  geom_line(aes(y=decomp_yearly$season_adjust, color = "Seasonally adjusted monthly mean"), linewidth=2) +
   geom_line(aes(y=decomp_yearly$trend, color = "STL trend"), linewidth = 2) +
+  geom_line(aes(y=decomp_yearly$season_year, color = "STL seasonality")) +
   labs(x = 'Year-Month',
-       y = 'Mean concentration (mg/L)',
+       y = 'Concentration (mg/L)',
        title = "Phosphorus in Chesapeake Bay (2010-2019)") +
-  scale_color_manual(name = "", values = c("Adjusted monthly mean" = "black", "STL trend" = "red")) +
+  scale_color_manual(name = "", values = c("Monthly mean" = "black", "Seasonally adjusted monthly mean" = "cornflowerblue", "STL seasonality" = "seagreen", "STL trend" = "red"), breaks = c("Monthly mean", "Seasonally adjusted monthly mean", "STL seasonality", "STL trend")) +
   theme_bw() +
   theme(legend.position = "top", plot.title = element_text(hjust = 0.5))
 ```
-```
-
